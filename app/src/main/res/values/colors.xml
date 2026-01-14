@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand -->
+    <color name="brand">#22C55E</color>
+    <color name="brand_dark">#16A34A</color>
+
+    <!-- Light UI -->
+    <color name="bg">#F6F8FB</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface2">#F1F5F9</color>
+
+    <color name="text">#0F172A</color>
+    <color name="text2">#475569</color>
+    <color name="stroke">#DDE4EE</color>
+
+    <color name="success">#22C55E</color>
+    <color name="warning">#F59E0B</color>
+</resources>
