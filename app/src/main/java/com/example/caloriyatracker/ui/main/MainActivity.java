@@ -1,47 +1,50 @@
 package com.example.caloriyatracker.ui.main;
 
-import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.Fragment;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.caloriyatracker.R;
-import com.example.caloriyatracker.data.local.SessionManager;
-import com.example.caloriyatracker.ui.auth.LoginActivity;
-import com.example.caloriyatracker.ui.home.HomeFragment;
-import com.example.caloriyatracker.ui.profile.ProfileFragment;
-import com.example.caloriyatracker.ui.results.ResultsFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
 
+    private ViewPager2 viewPager;
+    private BottomNavigationView bottomNav;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        SessionManager sm = new SessionManager(this);
-        if (sm.getUserId() == -1) {
-            startActivity(new Intent(this, LoginActivity.class));
-            finish();
-            return;
-        }
-
         setContentView(R.layout.activity_main);
 
-        BottomNavigationView nav = findViewById(R.id.bottomNav);
-        nav.setOnItemSelectedListener(item -> {
-            Fragment f;
-            if (item.getItemId() == R.id.nav_home) f = new HomeFragment();
-            else if (item.getItemId() == R.id.nav_profile) f = new ProfileFragment();
-            else f = new ResultsFragment();
+        viewPager = findViewById(R.id.viewPager);
+        bottomNav = findViewById(R.id.bottomNav);
 
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.container, f)
-                    .commit();
+        viewPager.setAdapter(new MainPagerAdapter(this));
+        viewPager.setOffscreenPageLimit(3);
+
+        // Свайп -> обновляем выбранную вкладку
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                if (position == 0) bottomNav.setSelectedItemId(R.id.nav_home);
+                else if (position == 1) bottomNav.setSelectedItemId(R.id.nav_profile);
+                else bottomNav.setSelectedItemId(R.id.nav_results);
+            }
+        });
+
+        // Нажатие на bottomNav -> перелистываем
+        bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_home) viewPager.setCurrentItem(0, true);
+            else if (id == R.id.nav_profile) viewPager.setCurrentItem(1, true);
+            else if (id == R.id.nav_results) viewPager.setCurrentItem(2, true);
             return true;
         });
 
-        nav.setSelectedItemId(R.id.nav_home);
+        // старт
+        bottomNav.setSelectedItemId(R.id.nav_home);
     }
 }
