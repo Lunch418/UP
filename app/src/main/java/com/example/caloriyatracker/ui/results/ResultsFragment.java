@@ -42,7 +42,9 @@ public class ResultsFragment extends Fragment {
     private BarChart barChart;
 
     private SessionManager sm;
+
     private final Map<Integer, Product> productMap = new HashMap<>();
+    private boolean chartInited = false;
 
     @Nullable
     @Override
@@ -61,8 +63,26 @@ public class ResultsFragment extends Fragment {
         pbToday = v.findViewById(R.id.pbToday);
         barChart = v.findViewById(R.id.barChart);
 
-        setupChart();
-        loadProductsThenMeals();
+        if (!chartInited) {
+            setupChart();
+            chartInited = true;
+        }
+
+        refresh();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        refresh();
+    }
+
+    private void refresh() {
+        if (!productMap.isEmpty()) {
+            loadMeals();
+        } else {
+            loadProductsThenMeals();
+        }
     }
 
     private void loadProductsThenMeals() {
@@ -103,6 +123,7 @@ public class ResultsFragment extends Fragment {
 
     private void render(List<Meal> meals) {
         int goal = sm.getGoal();
+        if (goal <= 0) goal = 2000;
 
         LocalDate today = LocalDate.now();
         LocalDate start = today.minusDays(6);
@@ -110,11 +131,17 @@ public class ResultsFragment extends Fragment {
         double[] dayTotals = new double[7];
 
         for (Meal m : meals) {
-            String d = (m.consumed_at != null && m.consumed_at.length() >= 10) ? m.consumed_at.substring(0, 10) : null;
+            String d = (m.consumed_at != null && m.consumed_at.length() >= 10)
+                    ? m.consumed_at.substring(0, 10)
+                    : null;
             if (d == null) continue;
 
             LocalDate date;
-            try { date = LocalDate.parse(d); } catch (Exception e) { continue; }
+            try {
+                date = LocalDate.parse(d);
+            } catch (Exception e) {
+                continue;
+            }
 
             if (date.isBefore(start) || date.isAfter(today)) continue;
 
@@ -122,29 +149,35 @@ public class ResultsFragment extends Fragment {
             if (p == null) continue;
 
             int idx = (int) (date.toEpochDay() - start.toEpochDay()); // 0..6
+            if (idx < 0 || idx > 6) continue;
+
             double kcal = p.calories * m.weight_grams / 100.0;
             dayTotals[idx] += kcal;
         }
 
         double todayKcal = dayTotals[6];
-        tvTodayKcal.setText(((int) todayKcal) + " / " + goal + " ккал");
+        int todayKcalInt = (int) Math.round(todayKcal);
+
+        tvTodayKcal.setText(todayKcalInt + " / " + goal + " ккал");
 
         pbToday.setMax(goal);
-        pbToday.setProgress((int) Math.min(todayKcal, goal));
+        pbToday.setProgress(Math.min(todayKcalInt, goal));
 
-        // неделя
         double sum = 0;
         double best = 0;
         int inGoal = 0;
+
         for (double v : dayTotals) {
             sum += v;
             if (v > best) best = v;
             if (v <= goal && v > 0) inGoal++;
         }
-        int avg = (int) Math.round(sum / 7.0);
 
-        tvAvg.setText(avg + " ккал");
-        tvBest.setText(((int) best) + " ккал");
+        int avgInt = (int) Math.round(sum / 7.0);
+        int bestInt = (int) Math.round(best);
+
+        tvAvg.setText(avgInt + " ккал");
+        tvBest.setText(bestInt + " ккал");
         tvInGoal.setText(inGoal + "/7");
 
         setChart(dayTotals, start);
@@ -169,7 +202,9 @@ public class ResultsFragment extends Fragment {
 
     private void setChart(double[] totals, LocalDate start) {
         List<BarEntry> entries = new ArrayList<>();
-        for (int i = 0; i < 7; i++) entries.add(new BarEntry(i, (float) totals[i]));
+        for (int i = 0; i < 7; i++) {
+            entries.add(new BarEntry(i, (float) totals[i]));
+        }
 
         BarDataSet ds = new BarDataSet(entries, "");
         BarData data = new BarData(ds);
